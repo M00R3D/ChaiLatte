@@ -12,17 +12,21 @@ function analyze() {
     lines.forEach((line, lineCount) => {
         line = line.trim();
         if (line !== '') {
-            const tokens = line.split(/\b|(?<=[,.=])|(?=[,.=])/);
+            const tokens = line.match(/('[^']*'|[^\s=,]+)/g);
             tokens.forEach(token => {
                 if (token !== '') {
                     const info = getTokenInfo(token);
                     if (info[0] !== 'Inválido') {
                         const code = getCode(token, info[0]);
-                        tokenTableModel += `<tr><td>${tokenCounter++}</td><td>${lineCount + 1}</td><td>${token}</td><td>${info[0]}</td><td>${code}</td></tr>`;
-                        if (info[0] === 'Identificador') {
-                            identifierTableModel += `<tr><td>${token}</td><td>${identifierCounter++}</td><td>${lineCount + 1}</td></tr>`;
-                        } else if (info[0] === 'Constante') {
-                            constantTableModel += `<tr><td>${constantCounter++}</td><td>${token}</td><td>String</td><td>${code}</td></tr>`;
+                        if (info[0] === 'Constante') {
+                            // Eliminamos las comillas simples antes de mostrar el valor
+                            const value = token.replace(/^'|'$/g, '');
+                            constantTableModel += `<tr><td>${constantCounter++}</td><td>${value}</td><td>${info[1]}</td><td>${code}</td></tr>`;
+                        } else {
+                            tokenTableModel += `<tr><td>${tokenCounter++}</td><td>${lineCount + 1}</td><td>${token}</td><td>${info[0]}</td><td>${code}</td></tr>`;
+                            if (info[0] === 'Identificador') {
+                                identifierTableModel += `<tr><td>${token}</td><td>${identifierCounter++}</td><td>${lineCount + 1}</td></tr>`;
+                            }
                         }
                     }
                 }
@@ -38,16 +42,12 @@ function analyze() {
                 </thead>
                 <tbody>${tokenTableModel}</tbody>
             </table>
-        </div>
-        <div class="tab-pane">
             <table>
                 <thead>
                     <tr><th>Identificador</th><th>Valor</th><th>Línea</th></tr>
                 </thead>
                 <tbody>${identifierTableModel}</tbody>
             </table>
-        </div>
-        <div class="tab-pane">
             <table>
                 <thead>
                     <tr><th>No.</th><th>Constante</th><th>Tipo</th><th>Valor</th></tr>
@@ -66,14 +66,12 @@ function getTokenInfo(token) {
         return ['Identificador', '4'];
     } else if ([',', '='].includes(token)) {
         return ['Operador', '5'];
-    } else if (token.match(/'[^']*'/)) {
-        return ['Constante', '6'];
+    } else if (token.match(/^'([^']*)'$/)) {
+        return ['Constante', 'String'];
     } else if (token.match(/[><]=?/)) {
         return ['Relacionales', '84'];
     } else if (token.match(/^\d+$/)) {
-        return ['Constante', '61'];
-    } else if (token.match(/\b\w+\b/)) {
-        return ['Palabra', '99'];
+        return ['Constante', 'Number'];
     } else {
         return ['Inválido', '-1'];
     }
