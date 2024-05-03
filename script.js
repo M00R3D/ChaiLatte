@@ -8,14 +8,16 @@ function analyze() {
     let tokenTableModel = '';
     let identifierTableModel = '';
     let constantTableModel = '';
+    let errorTableModel = '';
 
     lines.forEach((line, lineCount) => {
         line = line.trim();
         if (line !== '') {
-            const tokens = line.split(/\b|(?<=[,.=])|(?=[,.=])/);
+            const tokens = line.split(/\b|(?<=[,.=()<>])|(?=[,.=()<>])/);
+            let inString = false; // Para rastrear si estamos dentro de una cadena
             tokens.forEach(token => {
                 if (token !== '') {
-                    const info = getTokenInfo(token);
+                    const info = getTokenInfo(token, inString);
                     if (info[0] !== 'Inválido') {
                         const code = getCode(token, info[0]);
                         tokenTableModel += `<tr><td>${tokenCounter++}</td><td>${lineCount + 1}</td><td>${token}</td><td>${info[0]}</td><td>${code}</td></tr>`;
@@ -24,6 +26,16 @@ function analyze() {
                         } else if (info[0] === 'Constante') {
                             constantTableModel += `<tr><td>${constantCounter++}</td><td>${token}</td><td>String</td><td>${code}</td></tr>`;
                         }
+                    } else if (token.startsWith("'")) {
+                        inString = true;
+                        const constant = token.slice(1); // Elimina la comilla inicial
+                        constantTableModel += `<tr><td>${constantCounter++}</td><td>${constant}</td><td>String</td><td>-</td></tr>`;
+                    } else if (token.endsWith("'")) {
+                        inString = false;
+                        const constant = token.slice(0, -1); // Elimina la comilla final
+                        constantTableModel += `<tr><td>${constantCounter++}</td><td>${constant}</td><td>String</td><td>-</td></tr>`;
+                    } else {
+                        errorTableModel += `<tr><td>${lineCount + 1}</td><td>${token}</td><td>Possibly invalid token</td></tr>`;
                     }
                 }
             });
@@ -55,19 +67,27 @@ function analyze() {
                 <tbody>${constantTableModel}</tbody>
             </table>
         </div>
+        <div class="tab-pane">
+            <table>
+                <thead>
+                    <tr><th>Línea</th><th>Token</th><th>Error</th></tr>
+                </thead>
+                <tbody>${errorTableModel}</tbody>
+            </table>
+        </div>
     `;
     document.getElementById('result').innerHTML = result;
 }
 
-function getTokenInfo(token) {
-    if (['SELECT', 'FROM', 'WHERE', 'AND'].includes(token)) {
+function getTokenInfo(token, inString) {
+    if (inString) {
+        return ['Constante', '6'];
+    } else if (['SELECT', 'FROM', 'WHERE', 'AND'].includes(token.toUpperCase())) {
         return ['Palabras Reservadas', '1'];
-    } else if (['ANOMBRE', 'CALIFICACION', 'TURNO', 'ALUMNOS', 'INSCRITOS', 'MATERIAS', 'CARRERAS', 'MNOMBRE', 'CNOMBRE', 'SEMESTRE'].includes(token)) {
+    } else if (['ANOMBRE', 'CALIFICACION', 'TURNO', 'ALUMNOS', 'INSCRITOS', 'MATERIAS', 'CARRERAS', 'MNOMBRE', 'CNOMBRE', 'SEMESTRE'].includes(token.toUpperCase())) {
         return ['Identificador', '4'];
     } else if ([',', '='].includes(token)) {
         return ['Operador', '5'];
-    } else if (token.match(/'[^']*'/)) {
-        return ['Constante', '6'];
     } else if (token.match(/[><]=?/)) {
         return ['Relacionales', '84'];
     } else if (token.match(/^\d+$/)) {
