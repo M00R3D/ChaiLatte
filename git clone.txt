@@ -1,0 +1,41 @@
+function analyzeSQL(inputText) {
+    const errors = [];
+    const lines = inputText.split('\n');
+    let currentLine = 1;
+
+    lines.forEach(line => {
+        if (currentLine === 2 && line.includes("#")) {
+            errors.push(Error 1:101 Línea ${currentLine}. Símbolo desconocido.);
+        }
+
+        const tokens = line.split(/\b|(?<=[,.=()<>])|(?=[,.=()<>])/);
+        let previousToken = '';
+
+        tokens.forEach(token => {
+            if (token !== '') {
+                if (token === "SELECT" && previousToken !== '') {
+                    errors.push(Error 2:201 Línea ${currentLine}. Se esperaba Palabra Reservada.);
+                } else if (token === ',' && previousToken === '') {
+                    errors.push(Error 2:204 Línea ${currentLine}. Se esperaba Identificador.);
+                } else if (token === "FROM" && previousToken !== ',') {
+                    errors.push(Error 2:201 Línea ${currentLine}. Se esperaba Palabra Reservada.);
+                } else if (token === '(' && previousToken === '') {
+                    errors.push(Error 2:204 Línea ${currentLine}. Se esperaba Identificador.);
+                } else if (token === ')' && previousToken === '(') {
+                    errors.push(Error 2:204 Línea ${currentLine}. Se esperaba Identificador.);
+                } else if (token === "AND" && previousToken !== ')') {
+                    errors.push(Error 2:201 Línea ${currentLine}. Se esperaba Palabra Reservada.);
+                } else if (token === "'" && previousToken !== '=' && previousToken !== '(') {
+                    errors.push(Error 2:205 Línea ${currentLine}. Se esperaba Delimitador.);
+                } else if (['=', '>', '<', '<=', '>='].includes(token) && previousToken === '') {
+                    errors.push(Error 2:208 Línea ${currentLine}. Se esperaba Operador Relacional.);
+                }
+                previousToken = token;
+            }
+        });
+
+        currentLine++;
+    });
+
+    return errors;
+}
